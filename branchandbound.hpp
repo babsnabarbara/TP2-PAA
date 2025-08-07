@@ -55,8 +55,9 @@ private:
     vector<bool> takenItems;
 
     int maxProfit = 0;
-    
 
-};
+    vector<Node*> allocatedNodes; 
 
+    void cleanup();
+};  
 #endif // BRANCH_AND_BOUND_HPP

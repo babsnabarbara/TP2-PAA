@@ -6,6 +6,13 @@
 using namespace std;
 
 
+void BranchAndBound::cleanup() {
+    for (Node* node : allocatedNodes) {
+        delete node;
+    }
+    allocatedNodes.clear();
+}
+
 
 // Comparison function to sort Item according to
 // val/weight ratio
@@ -55,6 +62,7 @@ int BranchAndBound::bound(Node u, int n, int W, Item arr[])
 // Returns maximum profit we can get with capacity W
 int BranchAndBound::knapsack()
 {
+    // To keep track of allocated nodes
     int n = this->items.size();
     int W = this->capacidade;
     Item* items = this->items.data();
@@ -65,6 +73,7 @@ int BranchAndBound::knapsack()
     // make a queue for traversing the node
     queue<Node*> Q;
     Node* u = new Node;
+    allocatedNodes.push_back(u);
     Node* v = nullptr;
 
     // dummy node at starting
@@ -77,6 +86,7 @@ int BranchAndBound::knapsack()
     // and keep saving this->maxProfit
 
     Node* bestNode = nullptr;
+    
     while (!Q.empty())
     {
         Node* u = Q.front();
@@ -86,6 +96,7 @@ int BranchAndBound::knapsack()
         if (u->level == -1) {
             v = new Node(*u);
             v->level = 0;
+            allocatedNodes.push_back(v);
         }
 
         // If there is nothing on next level
@@ -101,8 +112,8 @@ int BranchAndBound::knapsack()
         include->weight = u->weight + items[include->level].weight;
         include->profit = u->profit + items[include->level].value;
         include->index = items[include->level].index;
-
         include->parent = u;
+        allocatedNodes.push_back(include);
 
         if (include->weight <= W && include->profit > this->maxProfit)
         {
@@ -116,28 +127,27 @@ int BranchAndBound::knapsack()
 
         if (include->bound > this->maxProfit)
             Q.push(include);
-        else 
-            delete include;
-    
+     
         Node* exclude = new Node;
         exclude->level = u->level + 1;
         exclude->weight = u->weight;
         exclude->profit = u->profit;
         exclude->parent = u;
         exclude->index = items[exclude->level].index;
-
         exclude->bound = bound(*exclude, n, W, items);
+        allocatedNodes.push_back(exclude);
         
         if (exclude->bound > this->maxProfit)
             Q.push(exclude);
-        else 
-            delete exclude;
+     
         
      //   delete u; // Clean up the node to prevent memory leak
     }
 
     takenItems = vector<bool>(n, false);  // reinicializa o vetor
     Node* cur = bestNode;
+    allocatedNodes.push_back(bestNode); // Ensure bestNode is also tracked for deletion
+    
     while (cur && cur->level >= 0) {
         Node* p = cur->parent;
         if (p && cur->weight != p->weight) {
@@ -147,9 +157,6 @@ int BranchAndBound::knapsack()
         }
         cur = p;
     }
-
-    if (bestNode)
-        delete bestNode;
 
 
     return this->maxProfit;
