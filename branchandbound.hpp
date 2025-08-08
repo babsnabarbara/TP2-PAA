@@ -22,7 +22,7 @@ public:
             maxProfit = knapsack();
                 
         }
-
+    ~BranchAndBound();
     const vector<bool>& getTakenItems() const { return takenItems; }
     int getMaxProfit() const { return maxProfit; }
 

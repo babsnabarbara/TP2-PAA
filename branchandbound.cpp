@@ -13,6 +13,9 @@ void BranchAndBound::cleanup() {
     allocatedNodes.clear();
 }
 
+BranchAndBound::~BranchAndBound() {
+        cleanup();
+    }
 
 // Comparison function to sort Item according to
 // val/weight ratio
@@ -75,6 +78,7 @@ int BranchAndBound::knapsack()
     Node* u = new Node;
     allocatedNodes.push_back(u);
     Node* v = nullptr;
+  
 
     // dummy node at starting
     u->level = -1;
@@ -101,7 +105,6 @@ int BranchAndBound::knapsack()
 
         // If there is nothing on next level
         if (u->level == n-1) {
-            delete u;
             continue;
         }
 
@@ -118,8 +121,8 @@ int BranchAndBound::knapsack()
         if (include->weight <= W && include->profit > this->maxProfit)
         {
             this->maxProfit = include->profit;
-            if(bestNode) delete bestNode;
             bestNode = new Node (*include);
+            allocatedNodes.push_back(bestNode);
             bestNode->parent = include->parent;
         }
 
@@ -146,7 +149,7 @@ int BranchAndBound::knapsack()
 
     takenItems = vector<bool>(n, false);  // reinicializa o vetor
     Node* cur = bestNode;
-    allocatedNodes.push_back(bestNode); // Ensure bestNode is also tracked for deletion
+ 
     
     while (cur && cur->level >= 0) {
         Node* p = cur->parent;
