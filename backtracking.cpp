@@ -1,79 +1,87 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
+#include "backtracking.hpp"
+#include <algorithm>
+#include <numeric>
 
-#define MAX_ITENS 2000 // limite máximo de itens para segurança
+Backtracking::Backtracking(int W, const std::vector<std::pair<float, int>>& items) {
+    this->W = W;
+    this->n = items.size();
+    
+    std::vector<int> p(n);
+    std::iota(p.begin(), p.end(), 0);
 
-int W;                      // capacidade da mochila
-int n;                      // número de itens
-int pesos[MAX_ITENS];       // pesos dos itens
-int valores[MAX_ITENS];     // valores dos itens
-int melhor_valor = 0;       // melhor valor encontrado
-int melhor_comb[MAX_ITENS]; // itens escolhidos na melhor solução
+    std::sort(p.begin(), p.end(), [&](int i, int j) {
+        return (double)items[i].second / items[i].first > (double)items[j].second / items[j].first;
+    });
 
-void backtrack(int i, int peso_atual, int valor_atual,
-               int itens_selecionados[]) {
-  if (i == n) { // caso base: testamos todos os itens
-    if (valor_atual > melhor_valor && peso_atual <= W) {
-      melhor_valor = valor_atual;
-      for (int k = 0; k < n; k++)
-        melhor_comb[k] = itens_selecionados[k];
+    this->weights.resize(n);
+    this->values.resize(n);
+    this->originalIndices.resize(n);
+    for (int i = 0; i < n; ++i) {
+        this->weights[i] = items[p[i]].first;
+        this->values[i] = items[p[i]].second;
+        this->originalIndices[i] = p[i];
     }
-    return;
-  }
 
-  // Podar se já passou do peso
-  if (peso_atual > W)
-    return;
-
-  // Escolher item i
-  itens_selecionados[i] = 1;
-  backtrack(i + 1, peso_atual + pesos[i], valor_atual + valores[i],
-            itens_selecionados);
-
-  // Não escolher item i
-  itens_selecionados[i] = 0;
-  backtrack(i + 1, peso_atual, valor_atual, itens_selecionados);
+    this->maxProfit = 0;
+    this->takenItems.resize(n, false);
 }
 
-void ler_instancia(const char *nome_arquivo) {
-  FILE *f = fopen(nome_arquivo, "r");
-  if (!f) {
-    printf("Erro ao abrir o arquivo %s\n", nome_arquivo);
-    exit(1);
-  }
-
-  fscanf(f, "%d", &W);
-  n = 0;
-  while (fscanf(f, "%d %d", &pesos[n], &valores[n]) == 2) {
-    n++;
-    if (n >= MAX_ITENS)
-      break;
-  }
-  fclose(f);
+double Backtracking::upperBound(int i, int current_weight, int current_value) const {
+    double bound = current_value;
+    int weight = current_weight;
+    int k = i;
+    while (k < n && weight + weights[k] <= W) {
+        weight += weights[k];
+        bound += values[k];
+        k++;
+    }
+    if (k < n) {
+        bound += (W - weight) * ((double)values[k] / weights[k]);
+    }
+    return bound;
 }
 
-int main() {
-  char arquivo[] =
-      "instancia.txt"; // troque pelo nome do arquivo que deseja ler
-  ler_instancia(arquivo);
-
-  int itens_selecionados[MAX_ITENS] = {0};
-
-  clock_t inicio = clock();
-  backtrack(0, 0, 0, itens_selecionados);
-  clock_t fim = clock();
-
-  double tempo_execucao = (double)(fim - inicio) / CLOCKS_PER_SEC;
-
-  printf("Lucro máximo: %d\n", melhor_valor);
-  printf("Itens escolhidos: ");
-  for (int i = 0; i < n; i++) {
-    if (melhor_comb[i] == 1) {
-      printf("%d ", i + 1); // imprime índice do item (1-based)
+void Backtracking::backtrack(int i, int current_weight, int current_value, std::vector<bool>& current_selection) {
+    if (upperBound(i, current_weight, current_value) <= maxProfit) {
+        return;
     }
-  }
-  printf("\nTempo de execução: %.6f segundos\n", tempo_execucao);
 
-  return 0;
+    if (i == n) {
+        if (current_value > maxProfit) {
+            maxProfit = current_value;
+            takenItems = current_selection;
+        }
+        return;
+    }
+
+    if (current_weight + weights[i] <= W) {
+        current_selection[i] = true;
+        backtrack(i + 1, current_weight + weights[i], current_value + values[i], current_selection);
+    }
+
+    current_selection[i] = false;
+    backtrack(i + 1, current_weight, current_value, current_selection);
+}
+
+int Backtracking::solve() {
+    std::vector<bool> current_selection(n, false);
+    backtrack(0, 0, 0, current_selection);
+
+    std::vector<bool> original_order_taken_items(n, false);
+    for(int i=0; i<n; ++i) {
+        if(takenItems[i]) {
+            original_order_taken_items[originalIndices[i]] = true;
+        }
+    }
+    takenItems = original_order_taken_items;
+
+    return maxProfit;
+}
+
+int Backtracking::getMaxProfit() const {
+    return maxProfit;
+}
+
+const std::vector<bool>& Backtracking::getTakenItems() const {
+    return takenItems;
 }

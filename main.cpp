@@ -1,5 +1,6 @@
 #include "branchandbound.hpp"
 #include "dynamic.hpp"
+#include "backtracking.hpp"
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -89,52 +90,48 @@ executarBranchAndBound(int W, const vector<pair<float, int>> &itens) {
   return {lucro, taken};
 }
 
+AlgoritmoResultado executarDinamico(int W,
+                                    const vector<pair<float, int>> &itens) {
+  Dynamic dyn(W, itens);
+  int lucro = dyn.knapsack();
+  vector<bool> taken = dyn.getTakenItems();
+  return {lucro, taken};
+}
+
 AlgoritmoResultado
-executarDinamico(int W, const vector<pair<float, int>> &itensEntrada) {
-  int n = itensEntrada.size();
-  vector<Item> items(n);
-  for (int i = 0; i < n; ++i) {
-    items[i] = {i, static_cast<int>(itensEntrada[i].first),
-                itensEntrada[i].second};
-  }
-
-  vector<vector<int>> dp(n + 1, vector<int>(W + 1, 0));
-
-  for (int i = 1; i <= n; ++i) {
-    for (int w = 1; w <= W; ++w) {
-      if (items[i - 1].weight <= w) {
-        dp[i][w] = max(dp[i - 1][w],
-                       items[i - 1].value + dp[i - 1][w - items[i - 1].weight]);
-      } else {
-        dp[i][w] = dp[i - 1][w];
-      }
-    }
-  }
-
-  int lucroMaximo = dp[n][W];
-  vector<bool> itensTomados(n, false);
-
-  int w_rem = W;
-  for (int i = n; i > 0 && dp[i][w_rem] > 0; --i) {
-    if (dp[i][w_rem] != dp[i - 1][w_rem]) {
-      itensTomados[items[i - 1].id] = true;
-      w_rem -= items[i - 1].weight;
-    }
-  }
-
-  return {lucroMaximo, itensTomados};
+executarBacktracking(int W, const vector<pair<float, int>> &itens) {
+  Backtracking bkt(W, itens);
+  int lucro = bkt.solve();
+  vector<bool> taken = bkt.getTakenItems();
+  return {lucro, taken};
 }
 
 int main() {
   string diretorio = "instancias";
-  string arquivo_saida = "resultados.csv";
+  string arquivo_saida_bb = "resultados_branchandbound.csv";
+  string arquivo_saida_dp = "resultados_dynamic.csv";
+  string arquivo_saida_bt = "resultados_backtracking.csv";
 
-  ofstream csv(arquivo_saida);
-  if (!csv.is_open()) {
-    cerr << "Erro ao abrir arquivo de saída: " << arquivo_saida << endl;
+  ofstream csv_bb(arquivo_saida_bb);
+  if (!csv_bb.is_open()) {
+    cerr << "Erro ao abrir arquivo de saída: " << arquivo_saida_bb << endl;
     return 1;
   }
-  csv << "experimento,n,W,instancia_id,algoritmo,tempo_seg,lucro_max,itens\n";
+  csv_bb << "experimento,n,W,instancia_id,algoritmo,tempo_seg,lucro_max,itens\n";
+
+  ofstream csv_dp(arquivo_saida_dp);
+  if (!csv_dp.is_open()) {
+    cerr << "Erro ao abrir arquivo de saída: " << arquivo_saida_dp << endl;
+    return 1;
+  }
+  csv_dp << "experimento,n,W,instancia_id,algoritmo,tempo_seg,lucro_max,itens\n";
+
+  ofstream csv_bt(arquivo_saida_bt);
+  if (!csv_bt.is_open()) {
+    cerr << "Erro ao abrir arquivo de saída: " << arquivo_saida_bt << endl;
+    return 1;
+  }
+  csv_bt << "experimento,n,W,instancia_id,algoritmo,tempo_seg,lucro_max,itens\n";
 
   for (const auto &entry : filesystem::directory_iterator(diretorio)) {
     string caminho_arquivo = entry.path().string();
@@ -182,7 +179,7 @@ int main() {
         itensEscolhidos_bb.push_back((int)i);
     }
 
-    csv << 1 << "," << n << "," << W << "," << instancia_id << ","
+    csv_bb << 1 << "," << n << "," << W << "," << instancia_id << ","
         << "BranchAndBound" << "," << tempo_seg_bb << ","
         << resultado_bb.lucroMaximo << "," << '"'
         << itensParaJSON(itensEscolhidos_bb) << '"' << "\n";
@@ -202,15 +199,36 @@ int main() {
         itensEscolhidos_dp.push_back((int)i);
     }
 
-    csv << 2 << "," << n << "," << W << "," << instancia_id << ","
+    csv_dp << 2 << "," << n << "," << W << "," << instancia_id << ","
         << "Dynamic" << "," << tempo_seg_dp << "," << resultado_dp.lucroMaximo
         << "," << '"' << itensParaJSON(itensEscolhidos_dp) << '"' << "\n";
+
+    // --- Rodar Backtracking ---
+    auto start_bt = chrono::high_resolution_clock::now();
+    AlgoritmoResultado resultado_bt =
+        rodarAlgoritmo("Backtracking", W, itensEntrada, executarBacktracking);
+    auto end_bt = chrono::high_resolution_clock::now();
+
+    chrono::duration<double> duracao_bt = end_bt - start_bt;
+    double tempo_seg_bt = duracao_bt.count();
+
+    vector<int> itensEscolhidos_bt;
+    for (size_t i = 0; i < resultado_bt.itensTomados.size(); i++) {
+      if (resultado_bt.itensTomados[i])
+        itensEscolhidos_bt.push_back((int)i);
+    }
+
+    csv_bt << 3 << "," << n << "," << W << "," << instancia_id << ","
+        << "Backtracking" << "," << tempo_seg_bt << "," << resultado_bt.lucroMaximo
+        << "," << '"' << itensParaJSON(itensEscolhidos_bt) << '"' << "\n";
 
     cout << "Processado: " << caminho_arquivo << endl;
   }
 
-  csv.close();
-  cout << "Resultados salvos em " << arquivo_saida << endl;
+  csv_bb.close();
+  csv_dp.close();
+  csv_bt.close();
+  cout << "Resultados salvos em " << arquivo_saida_bb << ", " << arquivo_saida_dp << " e " << arquivo_saida_bt << endl;
 
   return 0;
 }
