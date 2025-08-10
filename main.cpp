@@ -1,6 +1,6 @@
+#include "backtracking.hpp"
 #include "branchandbound.hpp"
 #include "dynamic.hpp"
-#include "backtracking.hpp"
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -98,8 +98,8 @@ AlgoritmoResultado executarDinamico(int W,
   return {lucro, taken};
 }
 
-AlgoritmoResultado
-executarBacktracking(int W, const vector<pair<float, int>> &itens) {
+AlgoritmoResultado executarBacktracking(int W,
+                                        const vector<pair<float, int>> &itens) {
   Backtracking bkt(W, itens);
   int lucro = bkt.solve();
   vector<bool> taken = bkt.getTakenItems();
@@ -107,31 +107,34 @@ executarBacktracking(int W, const vector<pair<float, int>> &itens) {
 }
 
 int main() {
-  string diretorio = "instancias";
-  string arquivo_saida_bb = "resultados_branchandbound.csv";
-  string arquivo_saida_dp = "resultados_dynamic.csv";
-  string arquivo_saida_bt = "resultados_backtracking.csv";
+  string diretorio = "experimento2";
+  string arquivo_saida_bb = "resultados_branchandbound_2.csv";
+  string arquivo_saida_dp = "resultados_dynamic_2.csv";
+  string arquivo_saida_bt = "resultados_backtracking_2.csv";
 
   ofstream csv_bb(arquivo_saida_bb);
   if (!csv_bb.is_open()) {
     cerr << "Erro ao abrir arquivo de saída: " << arquivo_saida_bb << endl;
     return 1;
   }
-  csv_bb << "experimento,n,W,instancia_id,algoritmo,tempo_seg,lucro_max,itens\n";
+  csv_bb
+      << "experimento,n,W,instancia_id,algoritmo,tempo_seg,lucro_max,itens\n";
 
   ofstream csv_dp(arquivo_saida_dp);
   if (!csv_dp.is_open()) {
     cerr << "Erro ao abrir arquivo de saída: " << arquivo_saida_dp << endl;
     return 1;
   }
-  csv_dp << "experimento,n,W,instancia_id,algoritmo,tempo_seg,lucro_max,itens\n";
+  csv_dp
+      << "experimento,n,W,instancia_id,algoritmo,tempo_seg,lucro_max,itens\n";
 
   ofstream csv_bt(arquivo_saida_bt);
   if (!csv_bt.is_open()) {
     cerr << "Erro ao abrir arquivo de saída: " << arquivo_saida_bt << endl;
     return 1;
   }
-  csv_bt << "experimento,n,W,instancia_id,algoritmo,tempo_seg,lucro_max,itens\n";
+  csv_bt
+      << "experimento,n,W,instancia_id,algoritmo,tempo_seg,lucro_max,itens\n";
 
   for (const auto &entry : filesystem::directory_iterator(diretorio)) {
     string caminho_arquivo = entry.path().string();
@@ -180,9 +183,9 @@ int main() {
     }
 
     csv_bb << 1 << "," << n << "," << W << "," << instancia_id << ","
-        << "BranchAndBound" << "," << tempo_seg_bb << ","
-        << resultado_bb.lucroMaximo << "," << '"'
-        << itensParaJSON(itensEscolhidos_bb) << '"' << "\n";
+           << "BranchAndBound" << "," << tempo_seg_bb << ","
+           << resultado_bb.lucroMaximo << "," << '"'
+           << itensParaJSON(itensEscolhidos_bb) << '"' << "\n";
 
     // --- Rodar Dinamico ---
     auto start_dp = chrono::high_resolution_clock::now();
@@ -200,8 +203,9 @@ int main() {
     }
 
     csv_dp << 2 << "," << n << "," << W << "," << instancia_id << ","
-        << "Dynamic" << "," << tempo_seg_dp << "," << resultado_dp.lucroMaximo
-        << "," << '"' << itensParaJSON(itensEscolhidos_dp) << '"' << "\n";
+           << "Dynamic" << "," << tempo_seg_dp << ","
+           << resultado_dp.lucroMaximo << "," << '"'
+           << itensParaJSON(itensEscolhidos_dp) << '"' << "\n";
 
     // --- Rodar Backtracking ---
     auto start_bt = chrono::high_resolution_clock::now();
@@ -219,8 +223,9 @@ int main() {
     }
 
     csv_bt << 3 << "," << n << "," << W << "," << instancia_id << ","
-        << "Backtracking" << "," << tempo_seg_bt << "," << resultado_bt.lucroMaximo
-        << "," << '"' << itensParaJSON(itensEscolhidos_bt) << '"' << "\n";
+           << "Backtracking" << "," << tempo_seg_bt << ","
+           << resultado_bt.lucroMaximo << "," << '"'
+           << itensParaJSON(itensEscolhidos_bt) << '"' << "\n";
 
     cout << "Processado: " << caminho_arquivo << endl;
   }
@@ -228,7 +233,8 @@ int main() {
   csv_bb.close();
   csv_dp.close();
   csv_bt.close();
-  cout << "Resultados salvos em " << arquivo_saida_bb << ", " << arquivo_saida_dp << " e " << arquivo_saida_bt << endl;
+  cout << "Resultados salvos em " << arquivo_saida_bb << ", "
+       << arquivo_saida_dp << " e " << arquivo_saida_bt << endl;
 
   return 0;
 }
