@@ -1,167 +1,125 @@
 #include "branchandbound.hpp"
+#include <queue>
+#include <climits>
 
-// C++ program to solve knapsack problem using
-// branch and bound
-#include <bits/stdc++.h>
-using namespace std;
-
-
-void BranchAndBound::cleanup() {
-    for (Node* node : allocatedNodes) {
-        delete node;
-    }
-    allocatedNodes.clear();
+// Comparison function for sorting items by value/weight ratio (descending)
+bool BranchAndBound::cmp(Item a, Item b) {
+    return (a.value / a.weight) > (b.value / b.weight);
 }
 
-BranchAndBound::~BranchAndBound() {
-        cleanup();
-    }
-
-// Comparison function to sort Item according to
-// val/weight ratio
-bool BranchAndBound::cmp(Item a, Item b)
-{
-    double r1 = (double)a.value / a.weight;
-    double r2 = (double)b.value / b.weight;
-    return r1 > r2;
-}
-
-// Returns bound of profit in subtree rooted with u.
-// This function mainly uses Greedy solution to find
-// an upper bound on maximum profit.
-int BranchAndBound::bound(Node u, int n, int W, Item arr[])
-{
-    // if weight overcomes the knapsack capacity, return
-    // 0 as expected bound
-    if (u.weight >= W)
+// Calculate upper bound using fractional knapsack approach
+int BranchAndBound::bound(Node u, int n, int W, Item arr[]) {
+    if (u.weight >= W) {
         return 0;
-
-    // initialize bound on profit by current profit
-    int profit_bound = u.profit;
-
-    // start including items from index 1 more to current
-    // item index
+    }
+    
+    int bound = u.profit;
     int j = u.level + 1;
     int totweight = u.weight;
-
-    // checking index condition and knapsack capacity
-    // condition
-    while ((j < n) && (totweight + arr[j].weight <= W))
-    {
+    
+    // Add items that fit completely
+    while (j < n && totweight + arr[j].weight <= W) {
         totweight += arr[j].weight;
-        profit_bound += arr[j].value;
+        bound += arr[j].value;
         j++;
     }
-
-    // If k is not n, include last item partially for
-    // upper bound on profit
-    if (j < n)
-        profit_bound += (W - totweight) * arr[j].value /
-                                        arr[j].weight;
-
-    return profit_bound;
+    
+    // Add fractional part of the next item if it doesn't fit completely
+    if (j < n) {
+        bound += (W - totweight) * (arr[j].value / arr[j].weight);
+    }
+    
+    return bound;
 }
 
-// Returns maximum profit we can get with capacity W
-int BranchAndBound::knapsack()
-{
-    // To keep track of allocated nodes
-    int n = this->items.size();
-    int W = this->capacidade;
-    Item* items = this->items.data();
-    
-    // sorting Item on basis of value per unit weight.
-    sort(items, items + n, cmp);
+int BranchAndBound::knapsack() {
+  int n = this->items.size();
+  int W = this->capacidade;
+  Item *items = this->items.data();
 
-    // make a queue for traversing the node
-    queue<Node*> Q;
-    Node* u = new Node;
-    allocatedNodes.push_back(u);
-    Node* v = nullptr;
+  // Sort items by value/weight ratio
+  sort(items, items + n, cmp);
+
+  // Use a queue of smart pointers to manage node memory automatically  
+  queue<unique_ptr<Node>> Q;
+
+  // The root node of our decision tree
+  auto root = make_unique<Node>();
+  root->level = -1;
+  root->profit = 0;
+  root->weight = 0;
+  root->path.resize(n, false); // Initialize path with all false
+  Q.push(std::move(root));
+
+  // This will hold the final node of the best solution found
+  vector<bool> bestPath(n, false);
+  this->maxProfit = 0;
+
+  // Memory management: limit queue size to prevent memory explosion
+  const int MAX_QUEUE_SIZE = 1000000; // Adjust based on available memory
+  int nodesProcessed = 0;
+
+  while (!Q.empty() && nodesProcessed < MAX_QUEUE_SIZE) {
+    nodesProcessed++;
+    
+    // Move ownership of the node from the queue to the local variable 'u'
+    unique_ptr<Node> u = std::move(Q.front());
+    Q.pop();
+
+    // If at the last item, we can't branch further
+    if (u->level == n - 1) {
+      continue;
+    }
+
+    // --- Branch 1: Include the next item ---
+    int nextLevel = u->level + 1;
+    auto include = make_unique<Node>();
+    include->level = nextLevel;
+    include->weight = u->weight + items[nextLevel].weight;
+    include->profit = u->profit + items[nextLevel].value;
+    include->path = u->path; // Copy the path from parent
+    include->path[nextLevel] = true; // Mark this item as taken
+    include->index = items[nextLevel].index;
+    include->TookItem = true;
+
+    if (include->weight <= W && include->profit > this->maxProfit) {
+      this->maxProfit = include->profit;
+      bestPath = include->path; // Save the best path found
+    }
+
+    include->bound = bound(*include, n, W, items);
+
+    if (include->bound > this->maxProfit && Q.size() < MAX_QUEUE_SIZE) {
+      Q.push(std::move(include)); // Give ownership to the queue
+    }
+
+    // --- Branch 2: Exclude the next item ---
+    auto exclude = make_unique<Node>();
+    exclude->level = nextLevel;
+    exclude->weight = u->weight;
+    exclude->profit = u->profit;
+    exclude->path = u->path; // Copy the path from parent
+    exclude->path[nextLevel] = false; // Mark this item as not taken
+    exclude->index = items[nextLevel].index;
+    exclude->TookItem = false;
+
+    exclude->bound = bound(*exclude, n, W, items);
+
+    if (exclude->bound > this->maxProfit && Q.size() < MAX_QUEUE_SIZE) {
+      Q.push(std::move(exclude)); // Give ownership to the queue
+    }
+  }
+
+  // --- Set the taken items based on the best path found ---
+  takenItems.assign(n, false);
   
-
-    // dummy node at starting
-    u->level = -1;
-    u->profit = u->weight = 0;
-    Q.push(u);
-
-    // One by one extract an item from decision tree
-    // compute profit of all children of extracted item
-    // and keep saving this->maxProfit
-
-    Node* bestNode = nullptr;
-    
-    while (!Q.empty())
-    {
-        Node* u = Q.front();
-        Q.pop();
-
-        // If it is starting node, assign level 0
-        if (u->level == -1) {
-            v = new Node(*u);
-            v->level = 0;
-            allocatedNodes.push_back(v);
-        }
-
-        // If there is nothing on next level
-        if (u->level == n-1) {
-            continue;
-        }
-
-        // Else if not last node, then increment level,
-        // and compute profit of children nodes.
-        Node* include = new Node;
-        include->level = u->level + 1;
-        include->weight = u->weight + items[include->level].weight;
-        include->profit = u->profit + items[include->level].value;
-        include->index = items[include->level].index;
-        include->parent = u;
-        allocatedNodes.push_back(include);
-
-        if (include->weight <= W && include->profit > this->maxProfit)
-        {
-            this->maxProfit = include->profit;
-            bestNode = new Node (*include);
-            allocatedNodes.push_back(bestNode);
-            bestNode->parent = include->parent;
-        }
-
-        include->bound = bound(*include, n, W, items);
-
-        if (include->bound > this->maxProfit)
-            Q.push(include);
-     
-        Node* exclude = new Node;
-        exclude->level = u->level + 1;
-        exclude->weight = u->weight;
-        exclude->profit = u->profit;
-        exclude->parent = u;
-        exclude->index = items[exclude->level].index;
-        exclude->bound = bound(*exclude, n, W, items);
-        allocatedNodes.push_back(exclude);
-        
-        if (exclude->bound > this->maxProfit)
-            Q.push(exclude);
-     
-        
-     //   delete u; // Clean up the node to prevent memory leak
+  // Convert the best path to the original item indices
+  for (int i = 0; i < n; i++) {
+    if (bestPath[i]) {
+      int originalIndex = items[i].index;
+      takenItems[originalIndex] = true;
     }
+  }
 
-    takenItems = vector<bool>(n, false);  // reinicializa o vetor
-    Node* cur = bestNode;
- 
-    
-    while (cur && cur->level >= 0) {
-        Node* p = cur->parent;
-        if (p && cur->weight != p->weight) {
-            int originalIndex = cur->index;
-            // Mark the item as taken
-            this->takenItems[originalIndex] = true;
-        }
-        cur = p;
-    }
-
-
-    return this->maxProfit;
+  return this->maxProfit;
 }
-

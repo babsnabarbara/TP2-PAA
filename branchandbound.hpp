@@ -3,12 +3,9 @@
 
 #include <vector>
 #include <algorithm>
-#include <numeric>
-#include <limits>
+#include <memory>
 
 using namespace std;
-
-
 
 class BranchAndBound {
 public:
@@ -22,7 +19,7 @@ public:
             maxProfit = knapsack();
                 
         }
-    ~BranchAndBound();
+    ~BranchAndBound() = default; // Use default destructor since we're using smart pointers
     const vector<bool>& getTakenItems() const { return takenItems; }
     int getMaxProfit() const { return maxProfit; }
 
@@ -40,8 +37,11 @@ private:
     struct Node{
         int level, profit, bound, index;
         float weight;
-        Node *parent;
+        vector<bool> path; // Track the path to this node
         bool TookItem = false;
+        
+        // Constructor to initialize members
+        Node() : level(0), profit(0), bound(0), index(0), weight(0), TookItem(false) {}
     };
 
     vector<Item> items;
@@ -56,8 +56,6 @@ private:
 
     int maxProfit = 0;
 
-    vector<Node*> allocatedNodes; 
-
-    void cleanup();
-};  
+    // Remove allocatedNodes vector and cleanup function - no longer needed
+};
 #endif // BRANCH_AND_BOUND_HPP

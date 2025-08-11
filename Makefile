@@ -15,9 +15,17 @@ GENERATOR_EXEC = generator
 GENERATOR2_SRCS = generator2.cpp
 GENERATOR2_EXEC = gen2
 
+# Statistical analysis sources
+STAT_SRCS = statistical_analysis.cpp
+STAT_EXEC = statistical_analysis
+
+# Advanced statistical analysis sources
+ADV_STAT_SRCS = advanced_statistical_analysis.cpp
+ADV_STAT_EXEC = advanced_statistical_analysis
+
 .PHONY: all clean
 
-all: $(EXEC) $(GENERATOR_EXEC) $(GENERATOR2_EXEC)
+all: $(EXEC) $(GENERATOR_EXEC) $(GENERATOR2_EXEC) $(STAT_EXEC) $(ADV_STAT_EXEC)
 
 $(EXEC): $(SRCS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
@@ -28,5 +36,11 @@ $(GENERATOR_EXEC): $(GENERATOR_SRCS)
 $(GENERATOR2_EXEC): $(GENERATOR2_SRCS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
+$(STAT_EXEC): $(STAT_SRCS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+$(ADV_STAT_EXEC): $(ADV_STAT_SRCS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
 clean:
-	rm -f $(EXEC) $(GENERATOR_EXEC) $(GENERATOR2_EXEC)
+	rm -f $(EXEC) $(GENERATOR_EXEC) $(GENERATOR2_EXEC) $(STAT_EXEC) $(ADV_STAT_EXEC)

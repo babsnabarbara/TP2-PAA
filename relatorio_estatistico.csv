@@ -1,0 +1,10 @@
+Algoritmo,Média (s),Desvio Padrão (s),Erro Padrão (s),Número de Instâncias
+BranchAndBound,0.612199,0.244367,0.025617,91
+Dynamic,0.001638,0.006623,0.000694,91
+Backtracking,0.000408,0.001069,0.000112,
+
+Comparações,Estatística t,Valor p,Intervalo Confiança (±s),Rejeita H0,Conclusão
+BranchAndBound vs Dynamic,23.7394,0.001,0.050410,SIM,Algoritmo 2 é estatisticamente melhor (p < 0.05)
+BranchAndBound vs Backtracking,23.9043,0.001,0.050163,SIM,Algoritmo 2 é estatisticamente melhor (p < 0.05)
+Dynamic vs Backtracking,1.7385,0.100,0.001387,NÃO,EMPATE ESTATÍSTICO - Não há diferença significativa (p >= 0.05)
+SS

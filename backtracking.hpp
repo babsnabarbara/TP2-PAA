@@ -1,8 +1,6 @@
 #ifndef BACKTRACKING_HPP
 #define BACKTRACKING_HPP
 
-#include <algorithm>
-#include <numeric>
 #include <utility>
 #include <vector>
 
