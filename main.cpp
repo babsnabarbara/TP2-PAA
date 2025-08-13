@@ -106,16 +106,16 @@ AlgoritmoResultado executarBacktracking(int W,
   return {lucro, taken};
 }
 
-int main() {
-  string diretorio = "experimento2";
-  string arquivo_saida_bb = "resultados_branchandbound_2.csv";
-  string arquivo_saida_dp = "resultados_dynamic_2.csv";
-  string arquivo_saida_bt = "resultados_backtracking_2.csv";
+void processarExperimento(const string &diretorio, int experimento_num) {
+  string sufixo = "_" + to_string(experimento_num) + ".csv";
+  string arquivo_saida_bb = "resultados_branchandbound" + sufixo;
+  string arquivo_saida_dp = "resultados_dynamic" + sufixo;
+  string arquivo_saida_bt = "resultados_backtracking" + sufixo;
 
   ofstream csv_bb(arquivo_saida_bb);
   if (!csv_bb.is_open()) {
     cerr << "Erro ao abrir arquivo de saída: " << arquivo_saida_bb << endl;
-    return 1;
+    return;
   }
   csv_bb
       << "experimento,n,W,instancia_id,algoritmo,tempo_seg,lucro_max,itens\n";
@@ -123,7 +123,7 @@ int main() {
   ofstream csv_dp(arquivo_saida_dp);
   if (!csv_dp.is_open()) {
     cerr << "Erro ao abrir arquivo de saída: " << arquivo_saida_dp << endl;
-    return 1;
+    return;
   }
   csv_dp
       << "experimento,n,W,instancia_id,algoritmo,tempo_seg,lucro_max,itens\n";
@@ -131,7 +131,7 @@ int main() {
   ofstream csv_bt(arquivo_saida_bt);
   if (!csv_bt.is_open()) {
     cerr << "Erro ao abrir arquivo de saída: " << arquivo_saida_bt << endl;
-    return 1;
+    return;
   }
   csv_bt
       << "experimento,n,W,instancia_id,algoritmo,tempo_seg,lucro_max,itens\n";
@@ -152,7 +152,8 @@ int main() {
     }
 
     try {
-      n = stoi(caminho_arquivo.substr(pos_n + 2, pos_underscore - (pos_n + 2)));
+      string n_str = caminho_arquivo.substr(pos_n + 2);
+      n = stoi(n_str.substr(0, n_str.find("_")));
       instancia_id = stoi(caminho_arquivo.substr(
           pos_underscore + 1, pos_dot - (pos_underscore + 1)));
     } catch (...) {
@@ -182,8 +183,8 @@ int main() {
         itensEscolhidos_bb.push_back((int)i);
     }
 
-    csv_bb << 1 << "," << n << "," << W << "," << instancia_id << ","
-           << "BranchAndBound" << "," << tempo_seg_bb << ","
+    csv_bb << experimento_num << "," << n << "," << W << "," << instancia_id
+           << "," << "BranchAndBound" << "," << tempo_seg_bb << ","
            << resultado_bb.lucroMaximo << "," << '"'
            << itensParaJSON(itensEscolhidos_bb) << '"' << "\n";
 
@@ -202,8 +203,8 @@ int main() {
         itensEscolhidos_dp.push_back((int)i);
     }
 
-    csv_dp << 2 << "," << n << "," << W << "," << instancia_id << ","
-           << "Dynamic" << "," << tempo_seg_dp << ","
+    csv_dp << experimento_num << "," << n << "," << W << "," << instancia_id
+           << "," << "Dynamic" << "," << tempo_seg_dp << ","
            << resultado_dp.lucroMaximo << "," << '"'
            << itensParaJSON(itensEscolhidos_dp) << '"' << "\n";
 
@@ -222,8 +223,8 @@ int main() {
         itensEscolhidos_bt.push_back((int)i);
     }
 
-    csv_bt << 3 << "," << n << "," << W << "," << instancia_id << ","
-           << "Backtracking" << "," << tempo_seg_bt << ","
+    csv_bt << experimento_num << "," << n << "," << W << "," << instancia_id
+           << "," << "Backtracking" << "," << tempo_seg_bt << ","
            << resultado_bt.lucroMaximo << "," << '"'
            << itensParaJSON(itensEscolhidos_bt) << '"' << "\n";
 
@@ -233,8 +234,15 @@ int main() {
   csv_bb.close();
   csv_dp.close();
   csv_bt.close();
-  cout << "Resultados salvos em " << arquivo_saida_bb << ", "
-       << arquivo_saida_dp << " e " << arquivo_saida_bt << endl;
+  cout << "Resultados do experimento " << experimento_num << " salvos em "
+       << arquivo_saida_bb << ", " << arquivo_saida_dp << " e "
+       << arquivo_saida_bt << endl;
+}
+
+int main() {
+  processarExperimento("instancias", 1);
+  processarExperimento("experimento2", 2);
+  processarExperimento("experimento3", 3);
 
   return 0;
 }
